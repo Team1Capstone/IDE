@@ -1,22 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Drawing;
+using System.Diagnostics;
+//using System.Windows.Forms;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Classification;
+using Microsoft.CodeAnalysis.Formatting;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Core
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Drawing;
-    //using System.Windows.Forms;
-    using Microsoft.CodeAnalysis;
-    using Microsoft.CodeAnalysis.CSharp;
-    using Microsoft.CodeAnalysis.CSharp.Syntax;
-    using Microsoft.CodeAnalysis.Classification;
-    using Microsoft.CodeAnalysis.Formatting;
-    using Microsoft.CodeAnalysis.Text;
-
     public class Parser
     {
         private SyntaxTree tree;
@@ -25,6 +20,9 @@ namespace Core
         // Incomplete. Testing this out
         public void StateChange(string text)
         {
+            bool IsTreeRefreshRequired = false;
+
+            // Parse Text into a SyntaxTree
             var newTree = CSharpSyntaxTree.ParseText(text);
 
             if (tree != null)
@@ -35,25 +33,29 @@ namespace Core
 
                 // Where are the changes at? Do any nodes need to be passed over with the highlighter?
 
-                Console.WriteLine("{0} Changes", changes.Count);
-                Console.WriteLine("{0} Spans", spans.Count);
+                Debug.WriteLine(string.Format("{0} Changes", changes.Count));
+                Debug.WriteLine("{0} Spans", spans.Count);
 
                 foreach (var change in changes)
                 {
-                    Console.WriteLine("Change [{0}:{1}] {2}", change.Span.Start, change.Span.End, change.NewText);
+                    Debug.WriteLine(string.Format("Change [{0}:{1}] {2}", change.Span.Start, change.Span.End, change.NewText));
                 }
 
                 foreach (var span in spans)
                 {
-                    Console.WriteLine("{0}{1}", span.Start, span.End);
+                    Debug.WriteLine(string.Format("{0}{1}", span.Start, span.End));
                 }
             }
             else
             {
-                Console.WriteLine("New Tree");
+                // Always change if root tree is null. Only happens on the first write
+                IsTreeRefreshRequired = true;
             }
 
-            tree = newTree;
+            if (IsTreeRefreshRequired)
+            {
+                tree = newTree;
+            }
         }
 
         public static SyntaxNode NormalizeWhitespace(string text)
