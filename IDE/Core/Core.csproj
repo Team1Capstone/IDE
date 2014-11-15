@@ -72,9 +72,12 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SyntaxRewriters\Formatter.cs" />
     <Compile Include="SyntaxRewriters\InterfaceImplementer.cs" />
+    <Compile Include="SyntaxWalkers\DebugWalker.cs" />
     <Compile Include="SyntaxWalkers\Highlighter.cs" />
+    <Compile Include="SyntaxWalkers\HighlighterEventArgs.cs" />
     <Compile Include="SyntaxWalkers\NodeByPosition.cs" />
     <Compile Include="SyntaxWalkers\TokenWalker.cs" />
+    <Compile Include="Text\ColorTextSpan.cs" />
     <Compile Include="Workspace\Project.cs" />
     <Compile Include="Workspace\Solution.cs" />
     <Compile Include="Workspace\Workspace.cs" />

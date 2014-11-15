@@ -19,5 +19,13 @@ namespace Core.Workspace
         // Existing Solution
         // Remove Solution
         // Delete Solution
+
+        /// <summary>
+        /// Packages entire workspace into a ZIP file
+        /// </summary>
+        public void Package()
+        {
+
+        }
     }
 }

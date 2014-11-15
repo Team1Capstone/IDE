@@ -10,96 +10,104 @@ using Microsoft.CodeAnalysis.Classification;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Text;
 
+using Core.SyntaxWalkers;
+using Core.SyntaxRewriters;
+
 namespace Core
 {
     public class Parser
     {
-        private SyntaxTree tree;
-        private SourceText source;
+        public delegate void HighlighterUpdatedHandler(object sender, HighlighterEventArgs e);
 
-        // Incomplete. Testing this out
-        public void StateChange(string text)
+        private Highlighter highlighter;
+        public SyntaxTree tree;
+
+        public Parser()
         {
-            bool IsTreeRefreshRequired = false;
+            highlighter = new Highlighter();
+            EnableHighlighting = true;
+        }
 
-            // Parse Text into a SyntaxTree
+        public TextSpan Span { get; set; }
+
+        public bool EnableHighlighting { get; set; }
+
+        public event EventHandler TreeChanged;
+
+        public event HighlighterUpdatedHandler HighlighterUpdated;
+
+        protected virtual void OnTreeChanged(EventArgs e)
+        {
+            if(TreeChanged != null)
+            {
+                TreeChanged(this, e);
+            }
+        }
+
+        protected virtual void OnHighlighterUpdated(HighlighterEventArgs e)
+        {
+            if(HighlighterUpdated != null)
+            {
+                HighlighterUpdated(this, e);
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="text"></param>
+        public void UpdateTree(string text)
+        {
             var newTree = CSharpSyntaxTree.ParseText(text);
 
             if (tree != null)
             {
-                // Get the changes between trees
-                var changes = newTree.GetChanges(tree);
-                var spans = newTree.GetChangedSpans(tree);
+                tree = newTree;
 
-                // Where are the changes at? Do any nodes need to be passed over with the highlighter?
+                // This would be much easier if there was a way to determine which node the caret is positioned in           
+                // Find the descendant node in the new tree which needs to be highlighted
 
-                Debug.WriteLine(string.Format("{0} Changes", changes.Count));
-                Debug.WriteLine("{0} Spans", spans.Count);
+                // Some changes won't require a highlighter pass (e.g. spaces (outside of string literals), newlines, some deletions)
+                // When a either a semicolon token is added, or when a closing brace is added that node should be normalized
 
-                foreach (var change in changes)
-                {
-                    Debug.WriteLine(string.Format("Change [{0}:{1}] {2}", change.Span.Start, change.Span.End, change.NewText));
-                }
+                // Steps
+                // 1. Determine the descendant that holds the selected text (1 character to many), as we don't want to highlight tokens that aren't changing
+                // 2. Visit that node using the Highlight class
+                // 2. - OR - compare the two trees to determine which tokens have changed
+                // 3. Return changes (contains color and position information) to the MainWindow
 
-                foreach (var span in spans)
-                {
-                    Debug.WriteLine(string.Format("{0}{1}", span.Start, span.End));
-                }
+                OnTreeChanged(new EventArgs());
             }
             else
             {
-                // Always change if root tree is null. Only happens on the first write
-                IsTreeRefreshRequired = true;
+                tree = newTree;
+
+                // Trigger Event
+                OnTreeChanged(new EventArgs());
             }
 
-            if (IsTreeRefreshRequired)
+            if (EnableHighlighting)
             {
-                tree = newTree;
+                highlighter.Visit(tree.GetRoot()); // this should changed to the node that contains the tokens being changed instead of the entire tree
+
+                if (highlighter.Changes.Count > 0)
+                {
+                    // Trigger Event
+                    OnHighlighterUpdated(new HighlighterEventArgs(highlighter.Changes));
+
+                    highlighter.Changes.Clear();
+                }
             }
         }
 
+        /// <summary>
+        /// Normalizes whitespace using predefined rules
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
         public static SyntaxNode NormalizeWhitespace(string text)
         {
             return CSharpSyntaxTree.ParseText(text).GetRoot().NormalizeWhitespace();
         }
-
-
-        /*public void ParseSyntax(RichTextBox rtb)
-        {
-            NodeByPositionWalker walker = new NodeByPositionWalker();
-
-            rtb.Text = ParseSyntax(rtb.Text);
-
-            walker.Visit(tree.GetRoot());
-
-            //SyntaxHighlight(rtb);
-        }*/
-
-        public string ParseSyntax(string text)
-        {
-            tree = CSharpSyntaxTree.ParseText(text);
-            source = SourceText.From(text);
-
-            return tree.ToString();
-        }
-
-        /*private void SyntaxHighlight(RichTextBox rtb)
-        {
-            SyntaxTokenHighlight highlighter = new SyntaxTokenHighlight();
-            TokenWalker collector = new TokenWalker();
-
-            collector.Visit(tree.GetRoot());
-
-            foreach (var token in collector.tokens)
-            {
-                if (highlighter.Map.ContainsKey(token.CSharpKind()))
-                {
-                    //Console.WriteLine("Coloring {2} Index: {0} Length: {1}", token.Span.Start, token.Span.Length, token.CSharpKind());
-
-                    rtb.Select(token.Span.Start, token.Span.Length);
-                    rtb.SelectionColor = highlighter.Map[token.CSharpKind()];
-                }
-            }
-        }*/
     }
 }

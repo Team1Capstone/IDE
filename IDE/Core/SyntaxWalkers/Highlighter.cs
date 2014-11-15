@@ -1,8 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
+
+using Core.Text;
 
 namespace Core.SyntaxWalkers
 {
@@ -11,14 +16,16 @@ namespace Core.SyntaxWalkers
     /// </summary>
     public class Highlighter : CSharpSyntaxWalker
     {
+        public Color DefaultColor { get; protected set; }
+        public Color DefaultBackgroundColor { get; protected set; }
         public readonly Dictionary<SyntaxKind, Color> Map;
-        
-        // TODO: return details about any changes that need to be highlighted. Strings are immutable, so it is important to do any string operations as fast as possible (i.e. StringBuilder)
+        public readonly List<ColorTextSpan> Changes;
 
         public Highlighter()
         {
             // TODO: Load the map from an external source, and not have the colors hard-coded since there is a lot of different tokens
             Map = new Dictionary<SyntaxKind, Color>();
+            Changes = new List<ColorTextSpan>();
 
             Action<IEnumerable<SyntaxKind>, Color> AddToMap = (kinds, color) =>
             {
@@ -38,40 +45,58 @@ namespace Core.SyntaxWalkers
             Map.Add(SyntaxKind.SingleLineCommentTrivia, Color.LawnGreen);
             Map.Add(SyntaxKind.SingleLineDocumentationCommentTrivia, Color.LawnGreen);
 
-            Map.Add(SyntaxKind.IdentifierName, Color.White);
+            // Predefined types
+            var predefinedTypes = new[] {
+                SyntaxKind.IntKeyword,
+                SyntaxKind.UIntKeyword,
+                SyntaxKind.ShortKeyword,
+                SyntaxKind.UShortKeyword,
+                SyntaxKind.LongKeyword,
+                SyntaxKind.ULongKeyword,
+                SyntaxKind.ByteKeyword,
+                SyntaxKind.SByteKeyword,
+                SyntaxKind.ObjectKeyword,
+                SyntaxKind.NullKeyword
+            };
 
-            /* Punctuation Kinds
+            SetColor(predefinedTypes, Color.DodgerBlue);
 
-            Map.Add(SyntaxKind.OpenBraceToken, Color.White);
-            Map.Add(SyntaxKind.CloseBraceToken, Color.White);
-            Map.Add(SyntaxKind.OpenParenToken, Color.White);
-            Map.Add(SyntaxKind.CloseParenToken, Color.White);
-            Map.Add(SyntaxKind.OpenBracketToken, Color.White);
-            Map.Add(SyntaxKind.CloseBracketToken, Color.White);*/
-
-            // Keywords
-            /*            Map.Add(SyntaxKind.NamespaceKeyword, Color.Turquoise);
-                        Map.Add(SyntaxKind.PropertyKeyword, Color.LawnGreen);
-                        Map.Add(SyntaxKind.MethodKeyword, Color.LawnGreen);
-                        Map.Add(SyntaxKind.ClassKeyword, Color.Turquoise);
-                        Map.Add(SyntaxKind.PublicKeyword, Color.Orange);
-                        Map.Add(SyntaxKind.ProtectedKeyword, Color.Orange);
-                        Map.Add(SyntaxKind.PrivateKeyword, Color.Orange);*/
+            Map.Add(SyntaxKind.IdentifierToken, Color.CadetBlue);
+        }
+        
+        public void SetColor(IEnumerable<SyntaxKind> kinds, Color color)
+        {
+            foreach(var kind in kinds)
+            {
+                if (Map.ContainsKey(kind))
+                {
+                    Map[kind] = color;
+                }else
+                {
+                    Map.Add(kind, color);
+                }
+            }
         }
 
-        /// <summary>
-        /// Traverses tokens and trivia of a node, and recursively calls child node
-        /// </summary>
-        /// <param name="node">The node being highlighted</param>
         public override void Visit(SyntaxNode node)
         {
-            // Browse all tokens and determine which ones should be colored
-            node.ChildTokens(); // incomplete
+            var tokens = node.DescendantTokens();
+            SyntaxKind kind;
 
-            // Recursively call child nodes (this would probably be better off as an iterative loop)
-            foreach(var _node in node.ChildNodes())
+            foreach (var token in tokens)
             {
-                Visit(_node);
+                kind = token.CSharpKind();
+
+                if (!token.FullSpan.IsEmpty && Map.ContainsKey(kind))
+                {
+                    Debug.WriteLine(kind + " is " + Map[kind].ToString());
+
+                    Changes.Add(new ColorTextSpan()
+                    {
+                        Color = Map[kind],
+                        Span = token.FullSpan
+                    });
+                }
             }
         }
     }

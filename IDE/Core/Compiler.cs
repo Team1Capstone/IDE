@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,24 +13,51 @@ namespace Core
 {
     public class Compiler
     {
+        public string AssemblyName;
+        public string ExecutableName;
+        public IEnumerable<SyntaxTree> SourceTrees;
+        public IEnumerable<MetadataReference> References;
         public OutputKind Output { get; set; }
 
         public void Compile()
         {
             if(Output == OutputKind.ConsoleApplication || Output == OutputKind.DynamicallyLinkedLibrary)
             {
-                var result = Compile(Output);
+                if (string.IsNullOrEmpty(AssemblyName))
+                {
+                    AssemblyName = "HelloWorld";
+                }
+
+                var options = new CSharpCompilationOptions(Output);
+
+                var compilation = CSharpCompilation.Create(AssemblyName)
+                    .AddReferences(new MetadataFileReference(typeof(object).Assembly.Location))
+                    .AddSyntaxTrees(SourceTrees)
+                    .WithOptions(options);
+
+                var emitResult = compilation.Emit(ExecutableName);
+
+                Debug.WriteLineIf(emitResult.Success, "Emitting IL passed");
+                Debug.WriteLineIf(!emitResult.Success, "Emitting IL failed");
+
+                foreach(var message in emitResult.Diagnostics)
+                {
+                    Debug.WriteLine(message);
+                }
+            }else
+            {
+                throw new NotSupportedException();
             }
         }
 
-        private CSharpCompilation Compile(OutputKind kind)
+        public void Run()
         {
-            // Files and references must be passed before compilation
+            if (File.Exists(ExecutableName))
+            {
+                Process p = Process.Start(ExecutableName);
+            }
 
-            SyntaxTree[] sourceTrees = new SyntaxTree[] { };
-            MetadataReference[] references = new MetadataReference[] { };
-
-            return CSharpCompilation.Create("Test", sourceTrees, references, new CSharpCompilationOptions(kind));
+            //Process.EnterDebugMode();
         }
     }
 }
