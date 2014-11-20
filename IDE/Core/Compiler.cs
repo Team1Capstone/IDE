@@ -6,33 +6,55 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Core.Workspace;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace Core
 {
+    [Obsolete]
     public class Compiler
     {
+        public Workspace.Project BuildProject;
+
         public string AssemblyName;
         public string ExecutableName;
         public IEnumerable<SyntaxTree> SourceTrees;
         public IEnumerable<MetadataReference> References;
         public OutputKind Output { get; set; }
 
+        void LoadFiles()
+        {
+            foreach (var doc in BuildProject.Files)
+            {
+               SyntaxFactory.ParseSyntaxTree(doc.ToString());
+            }
+        }
+
+        void LoadReferences()
+        {
+
+
+        }
+
         public void Compile()
         {
-            if(Output == OutputKind.ConsoleApplication || Output == OutputKind.DynamicallyLinkedLibrary)
+            if (BuildProject.Type == OutputKind.ConsoleApplication || BuildProject.Type == OutputKind.DynamicallyLinkedLibrary)
             {
+                LoadFiles();
+                LoadReferences();
+
                 if (string.IsNullOrEmpty(AssemblyName))
                 {
                     AssemblyName = "HelloWorld";
                 }
 
                 var options = new CSharpCompilationOptions(Output);
-
+               
                 var compilation = CSharpCompilation.Create(AssemblyName)
                     .AddReferences(new MetadataFileReference(typeof(object).Assembly.Location))
-                    .AddSyntaxTrees(SourceTrees)
+                    .AddSyntaxTrees(SourceTrees)                    
                     .WithOptions(options);
 
                 var emitResult = compilation.Emit(ExecutableName);
@@ -56,8 +78,6 @@ namespace Core
             {
                 Process p = Process.Start(ExecutableName);
             }
-
-            //Process.EnterDebugMode();
         }
     }
 }

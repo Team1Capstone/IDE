@@ -13,7 +13,9 @@ using System.Windows.Forms;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
+
 using Core;
+using Core.Workspace;
 using Core.SyntaxWalkers;
 
 namespace IDE
@@ -22,7 +24,7 @@ namespace IDE
     {
         private Parser parser;
         private Generator generator;
-        private Compiler compiler;
+        private Core.Workspace.Workspace Workspace;
 
         public MainWindow()
         {
@@ -30,92 +32,82 @@ namespace IDE
 
             parser = new Parser();
             generator = new Generator();
-            compiler = new Compiler();
+            Workspace = new Core.Workspace.Workspace();
+
+            // Event handling methods have been created in specific classes to clear this file up
+
+            // When text is selected the parser needs to know what text is selected
+            TextEditor.SelectionChanged += parser.SelectionChanged;
+
+            // Parser maintains a SyntaxTree and needs to be updated when the text changes
+            TextEditor.TextChanged += parser.TextChanged;
 
             parser.HighlighterUpdated += Parser_HighlighterUpdate;
-        }
 
-        private void Run()
-        {
-            // Due to the lack of a debugger the program is launched as a normal process, and debugging symbols aren't provided YET
-            compiler.Run();
-        }
+            // Build button
+            buildMenuItem.Click += Workspace.CurrentSolution.Build;
 
-        private void Build()
-        {
-            // Save files that are part of the solution/project before building
+            // Run button
+            runMenuItem.Click += Workspace.CurrentSolution.Run;
 
-            // These properties should be pulled from a project file, not hard-coded
-            compiler.SourceTrees = new[] { parser.tree };
-            compiler.Output = OutputKind.ConsoleApplication;
-            compiler.ExecutableName = "test.exe";
-
-            compiler.Compile();
-        }
-
-        private void Package()
-        {
-
-        }
-
-        private void toolStripSplitButton1_ButtonClick(object sender, EventArgs e)
-        {
-
+            // Package button
+            packageMenuItem.Click += Workspace.CurrentSolution.Package;
         }
 
         private void newToolStripMenuItem_Click(object sender, EventArgs e)
         {
             // Create new a file buffer
+
+            // if current solution has multiple projects, ask where to place new file
         }
 
-        private void normalizeWhitespaceToolStripMenuItem1_Click(object sender, EventArgs e)
+        private void NormalizeWhitespaceMenuItem_Click(object sender, EventArgs e)
         {
             TextEditor.Text = Parser.NormalizeWhitespace(TextEditor.Text).ToString();
-        }
 
-        private void TextEditor_TextChanged(object sender, EventArgs e)
-        {
-            // Update the Syntax Tree in the parser so it can determine highlighting and any automatic formatting
-            parser.UpdateTree(TextEditor.Text);
+            // TODO: position the cursor correctly, instead of letting it go to line 0, char 0
         }
 
         private void Parser_HighlighterUpdate(object sender, HighlighterEventArgs e)
         {
+            // Use a temporary RichTextBox to prevent most of the flickering that occurs when using TextEditor.Select
+            RichTextBox temp = new RichTextBox();
+            temp.Font = TextEditor.Font;
+            temp.Rtf = TextEditor.Rtf;
+            temp.SelectionStart = TextEditor.SelectionStart;
+
             // Store the position of the caret
             int pos = TextEditor.SelectionStart;
 
-            foreach(var change in e.Changes)
+            foreach (var change in e.Changes)
             {
                 // Select the text that will be highlighted
-                TextEditor.Select(change.Span.Start, change.Span.Length);
+                temp.Select(change.Span.Start, change.Span.Length);
 
                 // Change the color of the text
-                TextEditor.SelectionColor = change.Color;
+                temp.SelectionColor = change.Color;
             }
 
-            // Restore the position of the caret
+            // Push changed text with styling
+            TextEditor.Rtf = temp.Rtf;
+
+            // Restore the position of the caret, and use default text color
             TextEditor.Select(pos, 0);
             TextEditor.SelectionColor = Color.White;
         }
 
-        private void TextEditor_SelectionChanged(object sender, EventArgs e)
-        {
-            parser.Span = new TextSpan(TextEditor.SelectionStart, TextEditor.SelectionLength);
-        }
-
-        private void buildToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            Build();
-        }
-
-        private void runToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            Run();
-        }
-
         private void packageToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Package();
+            //Package();
+
+
+            // Test out serialization of Workspace/Solution/Project
+
+            // Add a solution to the workspace
+            Workspace.AddNewSolution("ConsoleApp", OutputKind.ConsoleApplication);
+            Workspace.AddNewSolution("TestClass", OutputKind.DynamicallyLinkedLibrary);
+
+            Workspace.WriteTo("test.workspace.xml");
         }
     }
 }

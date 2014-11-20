@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Diagnostics;
-//using System.Windows.Forms;
+using System.Windows.Forms;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -50,6 +50,20 @@ namespace Core
             {
                 HighlighterUpdated(this, e);
             }
+        }
+
+        public void TextChanged(object sender, EventArgs e)
+        {
+            var TextEditor = sender as RichTextBox;
+
+            UpdateTree(TextEditor.Text);
+        }
+
+        public void SelectionChanged(object sender, EventArgs e)
+        {
+            var TextEditor = sender as RichTextBox;
+
+            Span = new TextSpan(TextEditor.SelectionStart, TextEditor.SelectionLength);
         }
 
         /// <summary>

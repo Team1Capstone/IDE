@@ -112,6 +112,11 @@ namespace Core
         {
             return SyntaxFactory.EnumDeclaration("name");
         }
+
+        public SyntaxNode Enum(string name)
+        {
+            return SyntaxFactory.EnumDeclaration(name);
+        }
         
         public SyntaxNode Struct()
         {
