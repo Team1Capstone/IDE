@@ -5,9 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using Core.Text;
-
-namespace Core.SyntaxWalkers
+namespace Core.Text
 {
     public class HighlighterEventArgs : EventArgs
     {

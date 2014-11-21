@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Core
 {
-    public class CodeDebugger
+    /*public class CodeDebugger
     {
         private Process CurrentProcess;
 
@@ -19,7 +19,7 @@ namespace Core
         {
             throw new NotSupportedException();
 
-            if (UseDebugging)
+            //if (UseDebugging)
             {
                 // .pdb file needs to be generated
                 // Debugger.Launch();
@@ -49,5 +49,5 @@ namespace Core
         {
 
         }
-    }
+    }*/
 }

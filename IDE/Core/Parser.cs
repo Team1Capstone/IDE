@@ -10,8 +10,8 @@ using Microsoft.CodeAnalysis.Classification;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Text;
 
-using Core.SyntaxWalkers;
-using Core.SyntaxRewriters;
+using Core.Workspace;
+using Core.Text;
 
 namespace Core
 {
@@ -19,22 +19,22 @@ namespace Core
     {
         public delegate void HighlighterUpdatedHandler(object sender, HighlighterEventArgs e);
 
-        private Highlighter highlighter;
+        public event EventHandler TreeChanged;
+        public event HighlighterUpdatedHandler HighlighterUpdated;
+
+        private ClassificationHighlighter newHighlighter;
+
         public SyntaxTree tree;
 
         public Parser()
         {
-            highlighter = new Highlighter();
+            newHighlighter = new ClassificationHighlighter();
             EnableHighlighting = true;
         }
 
         public TextSpan Span { get; set; }
 
         public bool EnableHighlighting { get; set; }
-
-        public event EventHandler TreeChanged;
-
-        public event HighlighterUpdatedHandler HighlighterUpdated;
 
         protected virtual void OnTreeChanged(EventArgs e)
         {
@@ -55,6 +55,7 @@ namespace Core
         public void TextChanged(object sender, EventArgs e)
         {
             var TextEditor = sender as RichTextBox;
+
 
             UpdateTree(TextEditor.Text);
         }
@@ -102,14 +103,16 @@ namespace Core
 
             if (EnableHighlighting)
             {
-                highlighter.Visit(tree.GetRoot()); // this should changed to the node that contains the tokens being changed instead of the entire tree
+                // TODO retrieve active document
+                newHighlighter.Format(null, tree.GetText()).Wait();
 
-                if (highlighter.Changes.Count > 0)
+                var e = new HighlighterEventArgs();
+
+                if(newHighlighter.Changes.Count > 0)
                 {
-                    // Trigger Event
-                    OnHighlighterUpdated(new HighlighterEventArgs(highlighter.Changes));
+                    OnHighlighterUpdated(e);
 
-                    highlighter.Changes.Clear();
+                    newHighlighter.Changes.Clear();
                 }
             }
         }

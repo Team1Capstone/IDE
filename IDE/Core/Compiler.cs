@@ -26,7 +26,7 @@ namespace Core
 
         void LoadFiles()
         {
-            foreach (var doc in BuildProject.Files)
+            foreach (var doc in BuildProject.Documents)
             {
                SyntaxFactory.ParseSyntaxTree(doc.ToString());
             }

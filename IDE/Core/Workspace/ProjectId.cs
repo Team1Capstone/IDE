@@ -8,19 +8,19 @@ using System.Runtime.Serialization;
 namespace Core.Workspace
 {
     [DataContract(Name = "ProjectId", Namespace = "http://davenport.edu")]
-    public class ProjectId
+    public class CoreProjectId
     {
-        public ProjectId()
+        public CoreProjectId()
         {
             this.Id = Guid.NewGuid();
         }
 
-        public ProjectId(string path, string name) : this(Guid.NewGuid(), path, name)
+        public CoreProjectId(string path, string name) : this(Guid.NewGuid(), path, name)
         {
 
         }
 
-        public ProjectId(Guid id, string path, string name)
+        public CoreProjectId(Guid id, string path, string name)
         {
             this.Id = id;
             this.Path = path;

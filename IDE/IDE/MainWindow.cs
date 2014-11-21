@@ -1,40 +1,44 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
-
 using Core;
 using Core.Workspace;
-using Core.SyntaxWalkers;
+using Core.Text;
 
 namespace IDE
 {
     public partial class MainWindow : Form
-    {
+    {        
+        private BaseWorkspace Workspace;
         private Parser parser;
-        private Generator generator;
-        private Core.Workspace.Workspace Workspace;
 
         public MainWindow()
         {
             InitializeComponent();
 
             parser = new Parser();
-            generator = new Generator();
-            Workspace = new Core.Workspace.Workspace();
+            Workspace = new DUWorkspace();
 
-            // Event handling methods have been created in specific classes to clear this file up
+            /* setup workspace events */
+            Workspace.WorkspaceFailed += Workspace_WorkspaceFailed;
+
+            Workspace.DocumentAdded += Workspace_DocumentAdded;
+            Workspace.DocumentChanged += Workspace_DocumentChanged;
+            Workspace.DocumentReloaded += Workspace_DocumentReloaded;
+            Workspace.DocumentRemoved += Workspace_DocumentRemoved;
+            Workspace.DocumentOpened += Workspace_DocumentOpened;
+            Workspace.DocumentClosed += Workspace_DocumentClosed;
+
+            Workspace.SolutionAdded += Workspace_SolutionAdded;
+            Workspace.SolutionChanged += Workspace_SolutionChanged;
+            Workspace.SolutionCleared += Workspace_SolutionCleared;
+            Workspace.SolutionReloaded += Workspace_SolutionReloaded;
+            Workspace.SolutionRemoved += Workspace_SolutionRemoved;
 
             // When text is selected the parser needs to know what text is selected
             TextEditor.SelectionChanged += parser.SelectionChanged;
@@ -42,23 +46,200 @@ namespace IDE
             // Parser maintains a SyntaxTree and needs to be updated when the text changes
             TextEditor.TextChanged += parser.TextChanged;
 
+            /* setup parser events */
+            parser.EnableHighlighting = false; // new highlighter isnt done yet :(
             parser.HighlighterUpdated += Parser_HighlighterUpdate;
+            parser.TreeChanged += Parser_TreeChanged;
 
-            // Build button
-            buildMenuItem.Click += Workspace.CurrentSolution.Build;
-
-            // Run button
-            runMenuItem.Click += Workspace.CurrentSolution.Run;
-
-            // Package button
-            packageMenuItem.Click += Workspace.CurrentSolution.Package;
+            packageMenuItem.Click += packageToolStripMenuItem_Click;
         }
 
-        private void newToolStripMenuItem_Click(object sender, EventArgs e)
+        private void Workspace_DocumentRemoved(object sender, WorkspaceChangeEventArgs e)
         {
-            // Create new a file buffer
+            throw new NotImplementedException();
+        }
 
-            // if current solution has multiple projects, ask where to place new file
+        private void Workspace_DocumentReloaded(object sender, WorkspaceChangeEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void Workspace_DocumentChanged(object sender, WorkspaceChangeEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void Workspace_SolutionRemoved(object sender, WorkspaceChangeEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void Workspace_SolutionReloaded(object sender, WorkspaceChangeEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void Workspace_SolutionCleared(object sender, WorkspaceChangeEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void Workspace_SolutionChanged(object sender, WorkspaceChangeEventArgs e)
+        {
+            Debug.WriteLine("Solution Changed");
+            Debug.WriteLine(string.Format("Old Solution {0}", e.NewSolution.Id.Id));
+            Debug.WriteLine(string.Format("New Solution {0}", e.OldSolution.Id.Id));
+        }
+
+        private void Workspace_SolutionAdded(object sender, WorkspaceChangeEventArgs e)
+        {
+            Debug.WriteLine("Solution Added");
+
+            if(e.OldSolution != null)
+            {
+                Debug.WriteLine("Old Solution:");
+                Debug.WriteLine(e.OldSolution.Id.Id);
+                Debug.WriteLine(string.IsNullOrWhiteSpace(e.OldSolution.FilePath) ? @"n\a" : e.OldSolution.FilePath);
+            }
+
+            if(e.NewSolution != null)
+            {
+                Debug.WriteLine("New Solution:");
+                Debug.WriteLine(e.NewSolution.Id.Id);
+                Debug.WriteLine(string.IsNullOrWhiteSpace(e.NewSolution.FilePath) ? @"n\a" : e.NewSolution.FilePath);
+            }
+
+            UpdateWorkspaceTreeNodes();
+        }
+
+        private void Workspace_DocumentAdded(object sender, WorkspaceChangeEventArgs e)
+        {
+            Debug.WriteLine("Document Added");
+
+            if (e.DocumentId != null)
+            {
+                var doc = Workspace.CurrentSolution.GetDocument(e.DocumentId);
+
+                // Update Solution Tree View
+
+                Debug.WriteLine(doc.FilePath);
+            }
+
+            if(e.ProjectId != null)
+            {
+                var project = Workspace.CurrentSolution.GetProject(e.ProjectId);
+
+                // Update Solution Tree View
+
+                Debug.WriteLine(project.FilePath);
+            }
+
+            UpdateWorkspaceTreeNodes();
+        }
+
+        private void Workspace_WorkspaceFailed(object sender, WorkspaceDiagnosticEventArgs e)
+        {
+            Debug.WriteLine(string.Format("{0} | {1}", e.Diagnostic.Kind, e.Diagnostic.Message));
+        }
+        /*
+        private void Workspace_WorkspaceChanged(object sender, WorkspaceChangeEventArgs e)
+        {
+            if (e.NewSolution != null && e.OldSolution != null && e.NewSolution.Id.Id != e.OldSolution.Id.Id)
+            {
+                Debug.WriteLine("Old Solution: " + e.OldSolution.FilePath);
+                Debug.WriteLine("New Solution: " + e.NewSolution.FilePath);
+                Debug.WriteLine("Current Solution: " + Workspace.CurrentSolution.FilePath);
+                Debug.WriteLine(string.Format("\t\t{0} Projects in New Solution", Workspace.CurrentSolution.ProjectIds.Count));
+
+                var TreeNode = new TreeNode(string.Format("{0} ({1} Project{2})", e.NewSolution.Id.Id, Workspace.CurrentSolution.ProjectIds.Count, "s"));
+
+                foreach (var id in Workspace.CurrentSolution.ProjectIds)
+                {
+                    Debug.WriteLine(string.Format("\t\t\t-- Project Id {0}", id.Id));
+
+                    var project = Workspace.CurrentSolution.GetProject(id);
+                    var ProjectNode = new TreeNode(string.Format("{0} ({1} Documents)", project.Name, project.DocumentIds.Count));
+
+                    foreach (var did in project.DocumentIds)
+                    {
+                        ProjectNode.Nodes.Add(string.Format("Document {0}", did.Id));
+                    }
+
+                    TreeNode.Nodes.Add(ProjectNode);
+                }
+
+                WorkspaceTreeView.Nodes.Clear();
+                WorkspaceTreeView.Nodes.Add(TreeNode);
+            }
+
+            if (e.ProjectId != null)
+            {
+                Debug.WriteLine(string.Format("Project {0}", e.ProjectId.Id));
+
+                var TreeNode = new TreeNode(string.Format("{0} ({1} Project{2})", e.NewSolution.Id.Id, Workspace.CurrentSolution.ProjectIds.Count, "s"));
+
+                foreach (var id in Workspace.CurrentSolution.ProjectIds)
+                {
+                    Debug.WriteLine(string.Format("\t\t\t-- Project Id {0}", id.Id));
+
+                    var project = Workspace.CurrentSolution.GetProject(id);
+                    var ProjectNode = new TreeNode(string.Format("{0} ({1} Documents)", project.Name, project.DocumentIds.Count));
+
+                    foreach (var did in project.DocumentIds)
+                    {
+                        var document = project.GetDocument(did);
+
+                        ProjectNode.Nodes.Add(string.Format("{0}", document.Name));
+                    }
+
+                    TreeNode.Nodes.Add(ProjectNode);
+                }
+
+                WorkspaceTreeView.Nodes.Clear();
+                WorkspaceTreeView.Nodes.Add(TreeNode);
+            }
+
+            if (e.DocumentId != null)
+                Debug.WriteLine(string.Format("Document {0}", e.DocumentId.Id));
+        }
+        */
+        private void Workspace_DocumentClosed(object sender, DocumentEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void Workspace_DocumentOpened(object sender, DocumentEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void UpdateWorkspaceTreeNodes()
+        {
+            TreeNode root = new TreeNode("Solution");
+            root.Tag = Workspace.CurrentSolution.Id;
+
+            TreeNode node = null;
+            foreach (var project in Workspace.CurrentSolution.Projects)
+            {
+                node = new TreeNode(project.Name);
+                node.Tag = project.Id;
+                node.Nodes.AddRange(project.Documents.Select(d => new TreeNode(d.Name)).ToArray());
+                root.Nodes.Add(node);
+            }
+
+            WorkspaceTreeView.Nodes.Clear();
+            WorkspaceTreeView.Nodes.Add(root);
+        }
+        
+
+        /// <summary>
+        /// Event handler for storing the tree in the correct document
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Parser_TreeChanged(object sender, EventArgs e)
+        {   
+            // Update the Document object (not the file) with the changed SyntaxTree
         }
 
         private void NormalizeWhitespaceMenuItem_Click(object sender, EventArgs e)
@@ -98,16 +279,69 @@ namespace IDE
 
         private void packageToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            //Package();
+            #region Highlighter Test
+            //var highlight = new ClassificationHighlighter();
 
+            //highlight.Format(true, "name.cs", SourceText.From(TextEditor.Text));
+            #endregion
+        }
 
-            // Test out serialization of Workspace/Solution/Project
+        private void NewSolutionMenuItem_Click(object sender, EventArgs e)
+        {
+            // Is there is a solution open, close it (don't forget to provide save prompts!)
 
-            // Add a solution to the workspace
-            Workspace.AddNewSolution("ConsoleApp", OutputKind.ConsoleApplication);
-            Workspace.AddNewSolution("TestClass", OutputKind.DynamicallyLinkedLibrary);
+            // TODO: Prompt user for a name
 
-            Workspace.WriteTo("test.workspace.xml");
+            Workspace.CreateSolution("name");
+        }
+
+        private void consoleApplicationToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //var window = new NewProject();
+            
+            // TODO Prompt user for information
+            //var result = window.ShowDialog();
+
+            Workspace.CreateConsoleApplicationProject(Workspace.CurrentSolution, "HelloWorld", "HelloWorld");
+        }
+
+        private void classLibraryToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // Prompt user for information
+
+            Workspace.CreateClassLibraryProject(Workspace.CurrentSolution, "HelloWorldLib", "HelloWorldLib");
+        }
+
+        private void visualStudioSolutionToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var fd = new OpenFileDialog();
+
+            fd.Filter = "Visual Studio Solutions | *.sln";
+            fd.ShowDialog();
+        }
+
+        private void visualStudioProjectToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var fd = new OpenFileDialog();
+
+            fd.Filter = "C# Project Files | *.csproj";
+            fd.ShowDialog();
+        }
+
+        private void exitToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // TODO save prompts
+            Close();
+        }
+
+        private void closeAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var result = MessageBox.Show("Unsaved changes will be lost. Are you sure?", "Confirm", MessageBoxButtons.YesNo);
+
+            if (result == DialogResult.Yes)
+            {
+                Workspace.CloseSolution();
+            }
         }
     }
 }

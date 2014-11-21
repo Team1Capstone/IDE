@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,37 +14,44 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace Core.Workspace
 {
+    /*
     [DataContract(Name = "Solution", Namespace = "http://davenport.edu")]
-    public class Solution
+    [Obsolete]
+    public class CoreSolution
     {
-        [DataMember(Name = "SolutionId", IsRequired = true)]
-        internal SolutionId solutionId;
+        public event EventHandler Opened;
+        public event EventHandler Closed;
+
+        //[DataMember(Name = "SolutionId", IsRequired = true)]
+        //internal SolutionId solutionId;
 
         /// <summary>
-        /// Create an empty solution in memory
+        /// 
         /// </summary>
-        internal Solution() {
-            solutionId = new SolutionId();
-            Projects = new List<ProjectId>();
+        internal CoreSolution() {
+            Projects = new List<CoreProject>();
+
+            Id = Guid.NewGuid();
         }
 
         /// <summary>
         /// Create an empty solution in the default location
         /// </summary>
-        internal Solution(string name) : this()
+        internal CoreSolution(string name) : this()
         {
             // Name can't be null, empty, or whitespace
             // TODO: check for invalid characters
+
             if (string.IsNullOrWhiteSpace(name))
             {
                 throw new ArgumentException("Name cannot be empty");
             }
 
             // Solutions must have a name
-            solutionId.Name = name;
+            Name = name;
 
             // Set the path the "My Documents" folder and use the IDE subfolder
-            solutionId.Path = Workspace.UserProjectsDirectory + @"\" + name;
+            Path = BaseWorkspace.UserProjectsDirectory + @"\" + name;
 
             // Can't use a directory that already exists
             if (Directory.Exists(Path))
@@ -63,9 +72,21 @@ namespace Core.Workspace
         /// </summary>
         /// <param name="name"></param>
         /// <param name="path"></param>
-        internal Solution(string name, string path)
+        internal CoreSolution(string name, string path) : this()
         {
+            // Do not create a project
 
+            // Verify the path is valid
+            if (!Directory.Exists(path))
+            {
+                throw new DirectoryNotFoundException("Invalid Solution Path");
+            }
+
+            // Solutions must have a name
+            Name = name;
+
+            // Set the path of the solution
+            Path = path + @"\" + Name;
         }
 
         /// <summary>
@@ -73,10 +94,10 @@ namespace Core.Workspace
         /// </summary>
         /// <param name="name">The name of the solution</param>
         /// <param name="Kind">The type of project to add</param>
-        internal Solution(string name, OutputKind kind) : this(name)
+        internal CoreSolution(string name, OutputKind kind) : this(name)
         {
             // Create a new project
-            var project = new Project(name, kind);
+            var project = new CoreProject(name, kind);
 
             // Assign the directory
             project.directory = Path + @"\" + name;
@@ -88,9 +109,13 @@ namespace Core.Workspace
         /// <param name="name"></param>
         /// <param name="kind"></param>
         /// <param name="path"></param>
-        internal Solution(string name, OutputKind kind, string path) : this()
+        internal CoreSolution(string name, OutputKind kind, string path) : this(name, path)
         {
+            // Create a new project
+            var project = new CoreProject(name, kind);
 
+            // Assign the directory
+            project.directory = Path + @"\" + name;
         }
 
         /// <summary>
@@ -98,71 +123,130 @@ namespace Core.Workspace
         /// </summary>
         /// <param name="id"></param>
         /// <param name="path"></param>
-        internal Solution(Guid id, string path)
+        internal CoreSolution(Guid id)
         {
+            Id = id;
 
+            // determine solution's directory
+
+            // deserialize XML file
         }
 
         [DataMember]
-        public List<ProjectId> Projects { get; set; }
+        public List<CoreProject> Projects { get; set; }
 
-        public ProjectId this[int key]
+        [IgnoreDataMember]
+        public CoreProject this[Guid key]
         {
-            get { return Projects[key]; }
+            get {
+                return Projects.Where(p => p.Id == key).First();
+            }
         }
 
-        public Project this[string name]
+        [IgnoreDataMember]
+        public IEnumerable<CoreProject> this[string name]
         {
-            // TODO: provide access of projects by name
-            get { return null; }
+            get
+            {
+                return Projects.Where(p => p.Name == name);
+            }
         }
 
-        public Guid Id
+        [DataMember]
+        public Guid Id { get; internal set; }       
+
+        [DataMember]
+        public string Name { get; internal set; }
+
+        [DataMember]
+        public string Path { get; internal set; }        
+
+        protected virtual void OnOpened(EventArgs e)
         {
-            get { return solutionId.Id; }
+            if(Opened != null)
+            {
+                Opened(this, e);
+            }
         }
 
-        public string Name
+        protected virtual void OnClosed(EventArgs e)
         {
-            get { return solutionId.Name; }
+            if(Closed != null)
+            {
+                Closed(this, e);
+            }
         }
 
-        public string Path
-        {
-            get { return solutionId.Path; }
-        }
-
-        public void CreateProject(string name, OutputKind kind)
-        {
-            var project = new Project(name, kind);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="kind"></param>
+        internal void AddNewProject(string name, OutputKind kind) {
+            var project = new CoreProject(name, kind);
 
             // Set the directory of the project
-            project.directory = this.Path + @"\" + project.ProjectName;
+            project.directory = Path + @"\" + project.Name;
 
             // Write project file
-            project.WriteTo(project.directory + @"\" + string.Format("{0}.proj.xml", project.ProjectName));
-
-            //Projects.Add(project);
+            project.WriteTo(project.directory + @"\" + string.Format("{0}.proj.xml", project.Name));
         }
 
-        public void ImportProject(string path)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="path"></param>
+        internal void AddExistingProject(string path)
         {
-            // Locate a project file in the directory, but do not look in subfolders
+            // TODO deserialize project file
         }
 
+        /// <summary>
+        /// Open a solution
+        /// </summary>
+        public void Open()
+        {
+            OnOpened(new EventArgs());
+        }
+
+        /// <summary>
+        /// Close a solution
+        /// </summary>
+        public void Close()
+        {
+            OnClosed(new EventArgs());
+        }
+
+        /// <summary>
+        /// Rename a solution
+        /// </summary>
+        /// <param name="name"></param>
+        public void Rename(string name) { }
+
+        /// <summary>
+        /// Save all open files
+        /// </summary>
+        public void Save()
+        {
+            foreach(var project in Projects)
+            {
+                project.Save();
+            }
+        }
+              
         public void Build(object sender, EventArgs e)
         {
-
+            Build();
         }
 
         public void Run(object sender, EventArgs e)
         {
-
+            Run();
         }
 
         public void Package(object sender, EventArgs e)
         {
-
+            Package();
         }
 
         public void Build()
@@ -171,24 +255,59 @@ namespace Core.Workspace
 
             // Compile all project files in the solution
 
+            // Solutions with multiple projects will have a specific build path
 
-            /*var project = new Core.Workspace.Project();
-
-project.AssemblyName = "Test";
-project.OutputFile = "Test.exe";
-project.Type = OutputKind.ConsoleApplication;
-
-project.Trees = new[] { parser.tree };
-
-project.Compile();
-project.Emit();*/
+            if(Projects.Count == 1)
+            {
+                //Projects[0].Build();
+            }
         }
 
         public void Run()
-        {
-            Build();
+        {            
+            //Process process = Process.Start("");
         }
 
+        /// <summary>
+        /// Compress solution into ZIP and place in the top directory of solution
+        /// </summary>
+        public void Package()
+        {
+            Package(Path);
+        }
+
+        /// <summary>
+        /// Compress solution into ZIP and place at a specific location
+        /// </summary>
+        /// <param name="path"></param>
+        public void Package (string path)
+        {
+            // Set output file with gzipstream
+            var fs = new FileStream(Path + @"\" + Name + ".zip", FileMode.CreateNew);
+            var gzip = new GZipStream(fs, CompressionLevel.Optimal);
+            var dirInfo = new DirectoryInfo(Path);
+
+            byte[] data;
+
+            foreach(var file in dirInfo.EnumerateFiles("*", SearchOption.AllDirectories))
+            {
+                using (FileStream f = new FileStream(file.FullName, FileMode.Open))
+                {
+                    if (file.Extension.EndsWith("zip")) // don't add zip files
+                    {
+                        continue;
+                    }
+
+                    data = new byte[f.Length];
+
+                    // Read file into buffer
+                    f.Read(data, 0, (int)f.Length);
+
+                    // Write buffer to memory
+                    gzip.Write(data, 0, data.Length);
+                }
+            }
+        }
 
         /// <summary>
         /// Saves a solution file using the default naming scheme
@@ -211,11 +330,13 @@ project.Emit();*/
             };
 
             var writer = XmlWriter.Create(fs, settings);
-            var serializer = new DataContractSerializer(typeof(Solution));
+            var serializer = new DataContractSerializer(typeof(CoreSolution));
 
             serializer.WriteObject(writer, this);
             writer.Close();
             fs.Close();
         }
     }
+}
+*/
 }
