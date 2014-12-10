@@ -112,10 +112,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Text\HighlighterEventArgs.cs" />
     <Compile Include="Text\ColorTextSpan.cs" />
-    <Compile Include="Workspace\BaseWorkspace.cs" />
-    <Compile Include="Workspace\Project.cs" />
+    <Compile Include="Workspace\CoreWorkspace.cs" />
+    <Compile Include="Workspace\IWorkspace.cs" />
+    <Compile Include="Workspace\Extensions.cs" />
     <Compile Include="Workspace\Range.cs" />
-    <Compile Include="Workspace\VSWorkspace.cs" />
     <Compile Include="Workspace\DUWorkspace.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 
 using Microsoft.CodeAnalysis;
@@ -17,65 +17,75 @@ namespace Core.Text
 {
     public class ClassificationHighlighter
     {
+        public delegate void EventHandler1();
         public Color DefaultColor { get; protected set; }
         public Color DefaultBackgroundColor { get; protected set; }
         public readonly Dictionary<string, Color> Map;
         public readonly List<ColorTextSpan> Changes;
 
         public ClassificationHighlighter()
-        {
+        {            
+            Changes = new List<ColorTextSpan>();
             Map = new Dictionary<string, Color>();
             DefaultColor = Color.White;
             DefaultBackgroundColor = Color.FromArgb(32, 32, 32);
 
-            // Use reflection to get the string values of all the constants in ClassificationTypeNames
-            var constants = typeof(ClassificationTypeNames).GetFields(
-                BindingFlags.Public |
-                BindingFlags.Static |
-                BindingFlags.FlattenHierarchy)
-                .Where(fi => fi.IsLiteral && !fi.IsInitOnly).ToList();
-
-            foreach(var str in constants)
-            {
-                Map.Add((string)str.GetValue(null), DefaultColor);
-            }
-
-            Map[ClassificationTypeNames.ClassName] = Color.DodgerBlue;
-            Map[ClassificationTypeNames.InterfaceName] = Color.Olive;
-            Map[ClassificationTypeNames.Comment] = Color.LawnGreen;
+            Map.Add(ClassificationTypeNames.Keyword, Color.CornflowerBlue);
+            Map.Add(ClassificationTypeNames.ClassName, Color.Turquoise);
+            Map.Add(ClassificationTypeNames.DelegateName, Color.Turquoise);
+            Map.Add(ClassificationTypeNames.EnumName, Color.LightGoldenrodYellow);
+            Map.Add(ClassificationTypeNames.InterfaceName, Color.LightGoldenrodYellow);
+            Map.Add(ClassificationTypeNames.StructName, Color.Turquoise);
+            Map.Add(ClassificationTypeNames.TypeParameterName, Color.Azure);
+            Map.Add(ClassificationTypeNames.Identifier, Color.Turquoise);
+            Map.Add(ClassificationTypeNames.Comment, Color.ForestGreen);
+            Map.Add(ClassificationTypeNames.Punctuation, DefaultColor);
+            Map.Add(ClassificationTypeNames.Operator, DefaultColor);
+            Map.Add(ClassificationTypeNames.StringLiteral, Color.YellowGreen);
+            Map.Add(ClassificationTypeNames.NumericLiteral, Color.DarkSeaGreen);
+            Map.Add(ClassificationTypeNames.ExcludedCode, Color.Tomato);
         }
 
         // Adapted from: https://roslyn.codeplex.com/SourceControl/latest#Src/Samples/CSharp/ConsoleClassifier/Program.cs
         #region Derivative Work
-        public async Task Format(Document document, SourceText text)
+        public async Task Format(Document document, SourceText text = null)
         {
-            if(document == null)
+            if (document == null)
             {
                 return;
             }
 
-            var workspace = document.Project.Solution.Workspace;
-            var solution = workspace.CurrentSolution;
-            var project = document.Project;
-            
-            document = await Microsoft.CodeAnalysis.Formatting.Formatter.FormatAsync(document);
+            if (text == null)
+            {
+                Debug.WriteLine("Loading text");
+                text = SourceText.From(File.OpenRead(document.FilePath));
+            }
 
-            var cSpans = await Classifier.GetClassifiedSpansAsync(document, TextSpan.FromBounds(0, text.Length));
+            document = await Formatter.FormatAsync(document);
 
-            var ranges =  cSpans.Select(c => new Range(c, text.GetSubText(c.TextSpan).ToString()));
+            var cSpans = await Classifier.GetClassifiedSpansAsync(document.WithText(text), TextSpan.FromBounds(0, text.Length));
+
+            var ranges = cSpans.Select(c => new Range(c, text.GetSubText(c.TextSpan).ToString()));
 
             ranges = FillGaps(text, ranges);
 
-            foreach(var range in ranges)
+            Changes.Clear();
+
+            foreach (var range in ranges)
             {
-                switch (range.ClassificationType)
+                if (Map.Keys.Any(key => key.Equals(range.ClassificationType)))
                 {
-                    case "class name":
-                        break;
-                    case "interface name":
-                        break;
-                    default:
-                        break;
+                    var colorSpan = new ColorTextSpan();
+                    colorSpan.Span = range.TextSpan;
+                    colorSpan.Color = Map[range.ClassificationType];
+                    Changes.Add(colorSpan);
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(range.ClassificationType))
+                    {
+                        Debug.WriteLine("Notice: " + range.ClassificationType + " is not mapped to a color");
+                    }
                 }
             }
         }

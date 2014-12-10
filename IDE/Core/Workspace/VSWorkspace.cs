@@ -10,17 +10,18 @@ using Microsoft.CodeAnalysis.MSBuild;
 
 namespace Core.Workspace
 {
+    /*
     /// <summary>
     /// Capable of utilizing Visual Studio formats in a read-only capacity. Source code documents are read/write
     /// </summary>
-    public class VSWorkspace : BaseWorkspace
+    public class VSWorkspace : Microsoft.CodeAnalysis.Workspace, IWorkspace
     {
         public override event EventHandler<WorkspaceChangeEventArgs> AdditionalDocumentAdded;
         public override event EventHandler<WorkspaceChangeEventArgs> AdditionalDocumentChanged;
         public override event EventHandler<WorkspaceChangeEventArgs> AdditionalDocumentReloaded;
         public override event EventHandler<WorkspaceChangeEventArgs> AdditionalDocumentRemoved;
-        public override event EventHandler<DocumentEventArgs> DocumentOpened;
-        public override event EventHandler<DocumentEventArgs> DocumentClosed;
+        //public override event EventHandler<DocumentEventArgs> DocumentOpened;
+        //public override event EventHandler<DocumentEventArgs> DocumentClosed;
         public override event EventHandler<WorkspaceChangeEventArgs> DocumentAdded;
         public override event EventHandler<WorkspaceChangeEventArgs> DocumentChanged;
         public override event EventHandler<WorkspaceChangeEventArgs> DocumentReloaded;
@@ -35,7 +36,7 @@ namespace Core.Workspace
         public override event EventHandler<WorkspaceChangeEventArgs> SolutionReloaded;
         public override event EventHandler<WorkspaceChangeEventArgs> SolutionRemoved;
         //public override event EventHandler<WorkspaceChangeEventArgs> WorkspaceChanged;
-        public override event EventHandler<WorkspaceDiagnosticEventArgs> WorkspaceFailed;
+        //public override event EventHandler<WorkspaceDiagnosticEventArgs> WorkspaceFailed;
 
         private MSBuildWorkspace workspace;
 
@@ -49,7 +50,7 @@ namespace Core.Workspace
             workspace.WorkspaceFailed += Workspace_WorkspaceFailed;
         }
 
-        /* event handlers */
+        /* event handlers
 
         private void Workspace_WorkspaceFailed(object sender, WorkspaceDiagnosticEventArgs e)
         {
@@ -71,13 +72,13 @@ namespace Core.Workspace
             throw new System.NotImplementedException();
         }
 
-        /* properties */
+        /* properties 
         public override bool CanCreateSolutions { get { return false; } }
         public override bool CanCreateProjects { get { return false; } }
-        public override bool CanOpenDocuments { get { return workspace.CanOpenDocuments; } }
-        public override Solution CurrentSolution { get { return workspace.CurrentSolution; } }
+        //public override bool CanOpenDocuments { get { return workspace.CanOpenDocuments; } }
+        //public override Solution CurrentSolution { get { return workspace.CurrentSolution; } }
 
-        /* solution methods */
+        /* solution methods
 
         public override Solution CreateSolution(string name)
         {
@@ -106,12 +107,12 @@ namespace Core.Workspace
             workspace.CloseSolution();
         }
 
-        public override void ClearSolution()
+        /*public override void ClearSolution()
         {
             throw new NotSupportedException();
         }
 
-        /* project methods */
+        /* project methods 
 
         public override Project OpenProject(string projectFilePath)
         {
@@ -128,7 +129,7 @@ namespace Core.Workspace
             return await workspace.OpenProjectAsync(projectFilePath);
         }
 
-        public override IEnumerable<DocumentId> GetOpenDocumentIds(ProjectId projectId)
+        /*public override IEnumerable<DocumentId> GetOpenDocumentIds(ProjectId projectId)
         {
             return workspace.GetOpenDocumentIds(projectId);
         }
@@ -148,7 +149,7 @@ namespace Core.Workspace
             throw new NotSupportedException("Cannot create Visual Studio projects. Use DUWorkspace instead");
         }
 
-        /* document methods */
+        /* document methods
 
         public override Document CreateDocument(ProjectId id, string name)
         {
@@ -165,7 +166,7 @@ namespace Core.Workspace
             workspace.OpenDocument(documentId);
         }
 
-        public override void CloseDocument(DocumentId documentId)
+        /*public override void CloseDocument(DocumentId documentId)
         {
             workspace.CloseDocument(documentId);
         }
@@ -174,5 +175,5 @@ namespace Core.Workspace
         {
             throw new NotImplementedException();
         }
-    }
+    }*/
 }

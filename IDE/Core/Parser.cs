@@ -24,7 +24,11 @@ namespace Core
 
         private ClassificationHighlighter newHighlighter;
 
-        public SyntaxTree tree;
+        public SourceText Text { get; set; }
+
+        public TextSpan Span { get; set; }
+
+        public bool EnableHighlighting { get; set; }
 
         public Parser()
         {
@@ -32,13 +36,9 @@ namespace Core
             EnableHighlighting = true;
         }
 
-        public TextSpan Span { get; set; }
-
-        public bool EnableHighlighting { get; set; }
-
         protected virtual void OnTreeChanged(EventArgs e)
         {
-            if(TreeChanged != null)
+            if (TreeChanged != null)
             {
                 TreeChanged(this, e);
             }
@@ -46,18 +46,10 @@ namespace Core
 
         protected virtual void OnHighlighterUpdated(HighlighterEventArgs e)
         {
-            if(HighlighterUpdated != null)
+            if (HighlighterUpdated != null)
             {
                 HighlighterUpdated(this, e);
             }
-        }
-
-        public void TextChanged(object sender, EventArgs e)
-        {
-            var TextEditor = sender as RichTextBox;
-
-
-            UpdateTree(TextEditor.Text);
         }
 
         public void SelectionChanged(object sender, EventArgs e)
@@ -71,45 +63,26 @@ namespace Core
         /// 
         /// </summary>
         /// <param name="text"></param>
-        public void UpdateTree(string text)
+        public async void UpdateTree(Document doc)
         {
-            var newTree = CSharpSyntaxTree.ParseText(text);
-
-            if (tree != null)
+            if (doc == null)
             {
-                tree = newTree;
-
-                // This would be much easier if there was a way to determine which node the caret is positioned in           
-                // Find the descendant node in the new tree which needs to be highlighted
-
-                // Some changes won't require a highlighter pass (e.g. spaces (outside of string literals), newlines, some deletions)
-                // When a either a semicolon token is added, or when a closing brace is added that node should be normalized
-
-                // Steps
-                // 1. Determine the descendant that holds the selected text (1 character to many), as we don't want to highlight tokens that aren't changing
-                // 2. Visit that node using the Highlight class
-                // 2. - OR - compare the two trees to determine which tokens have changed
-                // 3. Return changes (contains color and position information) to the MainWindow
-
-                OnTreeChanged(new EventArgs());
+                Debug.WriteLine("Parser: Failed to update Tree");
+                return;
             }
-            else
-            {
-                tree = newTree;
 
-                // Trigger Event
-                OnTreeChanged(new EventArgs());
-            }
+            OnTreeChanged(new EventArgs());
 
             if (EnableHighlighting)
             {
-                // TODO retrieve active document
-                newHighlighter.Format(null, tree.GetText()).Wait();
+                await newHighlighter.Format(doc, Text);
 
                 var e = new HighlighterEventArgs();
 
-                if(newHighlighter.Changes.Count > 0)
+                if (newHighlighter.Changes.Count > 0)
                 {
+                    e.Changes = newHighlighter.Changes;
+
                     OnHighlighterUpdated(e);
 
                     newHighlighter.Changes.Clear();
