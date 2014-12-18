@@ -33,12 +33,12 @@
             this.label1 = new System.Windows.Forms.Label();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
-            this.ProjectPath = new System.Windows.Forms.TextBox();
-            this.ProjectName = new System.Windows.Forms.TextBox();
+            this.ProjectPathBox = new System.Windows.Forms.TextBox();
+            this.ProjectNameBox = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
             this.Cancel_Button = new System.Windows.Forms.Button();
-            this.radioButton1 = new System.Windows.Forms.RadioButton();
-            this.radioButton2 = new System.Windows.Forms.RadioButton();
+            this.ConsoleRadioButton = new System.Windows.Forms.RadioButton();
+            this.LibraryRadioButton = new System.Windows.Forms.RadioButton();
             this.DialogErrorProvider = new System.Windows.Forms.ErrorProvider(this.components);
             this.AddToCB = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.DialogErrorProvider)).BeginInit();
@@ -64,20 +64,21 @@
             this.label1.TabIndex = 1;
             this.label1.Text = "Project Name:";
             // 
-            // ProjectPath
+            // ProjectPathBox
             // 
-            this.ProjectPath.Location = new System.Drawing.Point(105, 276);
-            this.ProjectPath.Name = "ProjectPath";
-            this.ProjectPath.Size = new System.Drawing.Size(300, 20);
-            this.ProjectPath.TabIndex = 2;
+            this.ProjectPathBox.Location = new System.Drawing.Point(105, 276);
+            this.ProjectPathBox.Name = "ProjectPathBox";
+            this.ProjectPathBox.ReadOnly = true;
+            this.ProjectPathBox.Size = new System.Drawing.Size(300, 20);
+            this.ProjectPathBox.TabIndex = 2;
             // 
-            // ProjectName
+            // ProjectNameBox
             // 
-            this.ProjectName.Location = new System.Drawing.Point(105, 250);
-            this.ProjectName.Name = "ProjectName";
-            this.ProjectName.Size = new System.Drawing.Size(300, 20);
-            this.ProjectName.TabIndex = 4;
-            this.ProjectName.TextChanged += new System.EventHandler(this.ProjectName_TextChanged);
+            this.ProjectNameBox.Location = new System.Drawing.Point(105, 250);
+            this.ProjectNameBox.Name = "ProjectNameBox";
+            this.ProjectNameBox.Size = new System.Drawing.Size(300, 20);
+            this.ProjectNameBox.TabIndex = 4;
+            this.ProjectNameBox.TextChanged += new System.EventHandler(this.ProjectName_TextChanged);
             // 
             // label2
             // 
@@ -98,27 +99,29 @@
             this.Cancel_Button.Text = "Cancel";
             this.Cancel_Button.UseVisualStyleBackColor = true;
             // 
-            // radioButton1
+            // ConsoleRadioButton
             // 
-            this.radioButton1.AutoSize = true;
-            this.radioButton1.Location = new System.Drawing.Point(35, 13);
-            this.radioButton1.Name = "radioButton1";
-            this.radioButton1.Size = new System.Drawing.Size(118, 17);
-            this.radioButton1.TabIndex = 7;
-            this.radioButton1.TabStop = true;
-            this.radioButton1.Text = "Console Application";
-            this.radioButton1.UseVisualStyleBackColor = true;
+            this.ConsoleRadioButton.AutoSize = true;
+            this.ConsoleRadioButton.Checked = true;
+            this.ConsoleRadioButton.Location = new System.Drawing.Point(35, 13);
+            this.ConsoleRadioButton.Name = "ConsoleRadioButton";
+            this.ConsoleRadioButton.Size = new System.Drawing.Size(118, 17);
+            this.ConsoleRadioButton.TabIndex = 7;
+            this.ConsoleRadioButton.TabStop = true;
+            this.ConsoleRadioButton.Text = "Console Application";
+            this.ConsoleRadioButton.UseVisualStyleBackColor = true;
+            this.ConsoleRadioButton.CheckedChanged += new System.EventHandler(this.ConsoleRadioButton_CheckedChanged);
             // 
-            // radioButton2
+            // LibraryRadioButton
             // 
-            this.radioButton2.AutoSize = true;
-            this.radioButton2.Location = new System.Drawing.Point(35, 50);
-            this.radioButton2.Name = "radioButton2";
-            this.radioButton2.Size = new System.Drawing.Size(84, 17);
-            this.radioButton2.TabIndex = 8;
-            this.radioButton2.TabStop = true;
-            this.radioButton2.Text = "Class Library";
-            this.radioButton2.UseVisualStyleBackColor = true;
+            this.LibraryRadioButton.AutoSize = true;
+            this.LibraryRadioButton.Location = new System.Drawing.Point(35, 50);
+            this.LibraryRadioButton.Name = "LibraryRadioButton";
+            this.LibraryRadioButton.Size = new System.Drawing.Size(84, 17);
+            this.LibraryRadioButton.TabIndex = 8;
+            this.LibraryRadioButton.Text = "Class Library";
+            this.LibraryRadioButton.UseVisualStyleBackColor = true;
+            this.LibraryRadioButton.CheckedChanged += new System.EventHandler(this.LibraryRadioButton_CheckedChanged);
             // 
             // DialogErrorProvider
             // 
@@ -142,12 +145,12 @@
             this.CancelButton = this.Cancel_Button;
             this.ClientSize = new System.Drawing.Size(580, 408);
             this.Controls.Add(this.AddToCB);
-            this.Controls.Add(this.radioButton2);
-            this.Controls.Add(this.radioButton1);
+            this.Controls.Add(this.LibraryRadioButton);
+            this.Controls.Add(this.ConsoleRadioButton);
             this.Controls.Add(this.Cancel_Button);
             this.Controls.Add(this.label2);
-            this.Controls.Add(this.ProjectName);
-            this.Controls.Add(this.ProjectPath);
+            this.Controls.Add(this.ProjectNameBox);
+            this.Controls.Add(this.ProjectPathBox);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.CreateButton);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
@@ -169,12 +172,12 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog1;
         private System.Windows.Forms.SaveFileDialog saveFileDialog1;
-        private System.Windows.Forms.TextBox ProjectPath;
-        private System.Windows.Forms.TextBox ProjectName;
+        private System.Windows.Forms.TextBox ProjectPathBox;
+        private System.Windows.Forms.TextBox ProjectNameBox;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Button Cancel_Button;
-        private System.Windows.Forms.RadioButton radioButton1;
-        private System.Windows.Forms.RadioButton radioButton2;
+        private System.Windows.Forms.RadioButton ConsoleRadioButton;
+        private System.Windows.Forms.RadioButton LibraryRadioButton;
         private System.Windows.Forms.ErrorProvider DialogErrorProvider;
         private System.Windows.Forms.CheckBox AddToCB;
     }

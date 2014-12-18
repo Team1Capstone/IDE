@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml;
+using System.Xml.Linq;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Host;
@@ -55,10 +58,15 @@ namespace Core.Workspace
 
                 // Create Solution File
                 path = Path.Combine(path, name + ".dusln");
-                var writer = File.CreateText(path);
+                
+                using(var writer = XmlWriter.Create(File.OpenWrite(path)))
+                {
+                    var doc = new XDocument(
+                        new XElement("Solution",
+                            new XAttribute("Path", path)));
 
-                writer.Write("mumbo jumbo");
-                writer.Close();
+                    doc.WriteTo(writer);
+                }
             }
             else
             {

@@ -61,7 +61,7 @@ namespace Core.Text
                 text = SourceText.From(File.OpenRead(document.FilePath));
             }
 
-            document = await Formatter.FormatAsync(document);
+            document = await Formatter.FormatAsync(document);            
 
             var cSpans = await Classifier.GetClassifiedSpansAsync(document.WithText(text), TextSpan.FromBounds(0, text.Length));
 

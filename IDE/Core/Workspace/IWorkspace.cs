@@ -37,8 +37,10 @@ namespace Core.Workspace
 
         bool TryApplyChanges(Solution solution);
 
-        Solution AddSolution(string name);
+        Solution AddSolution(string name, string path = "");
         Solution AddSolution(SolutionInfo solutionInfo);
+
+        Project AddProject(string name, string path = "", OutputKind kind = OutputKind.DynamicallyLinkedLibrary);
         Project AddProject(ProjectInfo projectInfo);
 
         Solution OpenSolution(string solutionFilePath);
@@ -46,9 +48,9 @@ namespace Core.Workspace
         void OpenDocument(DocumentId documentId, bool activate = true);
 
         Document CurrentDocument { get; }
-
-
         Solution CurrentSolution { get; }
+
+        IEnumerable<DocumentId> GetOpenDocumentIds(ProjectId projectId = null);
 
         void Build();
         void Run();
